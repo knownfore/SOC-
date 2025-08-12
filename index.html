@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>JaNiece — Night Shift (High‑Contrast)</title>
+<style>
+  :root{
+    --bg:#0b101a; --panel:#11192a; --ink:#e9f2ff; --muted:#a1b2cc;
+    --accent:#00d5ff; --accent2:#7bff95; --warn:#ffd166; --danger:#ff5a7a; --ok:#39d98a;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{margin:0;background:radial-gradient(1200px 600px at 70% -10%, #10192a, #070b12) fixed;color:var(--ink);font-family:system-ui,Segoe UI,Inter,Roboto,Arial}
+  .wrap{max-width:1080px;margin:auto;padding:18px}
+  header{display:flex;align-items:center;gap:12px}
+  .avatar{width:54px;height:54px;border-radius:999px;background:linear-gradient(135deg,#273654,#141c2e);display:grid;place-items:center;box-shadow:0 10px 30px rgba(0,0,0,.45)}
+  .avatar::after{content:"👩🏾‍💻";font-size:28px}
+  h1{font-size:22px;margin:0}
+  .sub{color:var(--muted);font-size:13px}
+
+  /* --- Third‑person scene --- */
+  .scene{margin:14px 0 16px;border-radius:18px;border:1px solid #1f2a42;background:linear-gradient(180deg,#0f1627,#0b1222);position:relative;overflow:hidden;box-shadow:0 12px 34px rgba(0,0,0,.35)}
+  .scene svg{display:block;width:100%;height:auto}
+  .scene .glow{opacity:.0;transition:.2s opacity}
+  .scene.alerting .glow{opacity:.9}
+  .scene .zzz{opacity:0;transition:.25s opacity}
+  .scene.sleepy .zzz{opacity:1}
+
+  /* --- HUD --- */
+  .hud{display:grid;grid-template-columns:1fr auto auto auto;gap:12px;align-items:center;margin:16px 0}
+  .meter{height:16px;background:#0a1527;border:1px solid #1f2a42;border-radius:999px;overflow:hidden}
+  .fill{height:100%;width:100%;background:linear-gradient(90deg,#46ffb1,#61d3ff)}
+  .label{font-size:12px;color:var(--muted)}
+
+  /* --- High‑contrast CTAs --- */
+  .pill{display:inline-flex;align-items:center;gap:10px;padding:10px 14px;border-radius:999px;background:linear-gradient(180deg,#172033,#0d1526);border:1px solid #22314e}
+  .cta{cursor:pointer;user-select:none;border:2px solid #0b2b3a;border-radius:999px;padding:12px 16px;font-weight:800;letter-spacing:.15px;font-size:15px;color:#fff;text-shadow:0 1px 0 rgba(0,0,0,.4);
+       background:linear-gradient(180deg, var(--accent), #009ac1); box-shadow:0 6px 16px rgba(0,213,255,.25), inset 0 -2px 0 rgba(0,0,0,.25)}
+  .cta.secondary{background:linear-gradient(180deg, #24e58e, #0fb86c); box-shadow:0 6px 16px rgba(36,229,142,.22), inset 0 -2px 0 rgba(0,0,0,.25)}
+  .cta:focus-visible{outline:3px solid #fff; outline-offset:2px}
+  .cta:active{transform:translateY(1px)}
+
+  .desk{display:grid;grid-template-columns:2fr 1fr;gap:14px}
+  .monitors{background:linear-gradient(180deg,#0f1627,#0b1222);border:1px solid #1f2a42;border-radius:16px;padding:14px;position:relative;box-shadow:0 10px 30px rgba(0,0,0,.3)}
+  .cams{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+  .cam{aspect-ratio:16/9;border-radius:10px;background:radial-gradient(180px 90px at 30% 30%,#0f1b35,#0a1220);border:1px solid #1e2a44;position:relative;overflow:hidden}
+  .scan{position:absolute;inset:0;opacity:.2;background:repeating-linear-gradient(to bottom, rgba(118,218,255,.15) 0 2px, transparent 2px 4px)}
+  .title{position:absolute;left:8px;top:6px;font-size:11px;color:#9cb3d6;background:#0b1322aa;border:1px solid #203050;border-radius:6px;padding:2px 6px}
+  .alert{outline:3px solid var(--warn);box-shadow:0 0 0 6px rgba(255,184,77,.18) inset;animation:pulse .9s infinite}
+  @keyframes pulse{50%{outline-color:#ffe9bf}}
+
+  .side{display:grid;gap:12px}
+  .card{background:linear-gradient(180deg,#121a2a,#0c1424);border:1px solid #1f2a42;border-radius:16px;padding:14px}
+  .center{display:grid;place-items:center}
+  .big{font-size:24px}
+
+  .phone{position:relative;border-radius:18px;background:linear-gradient(180deg,#0c1220,#0a1120);border:1px solid #21324f;box-shadow:0 12px 30px rgba(0,0,0,.4);padding:12px}
+  .phone-header{display:flex;align-items:center;gap:8px;color:#ffffff;font-size:13px;margin-bottom:8px}
+  .bubble{background:#1a2440;border:1px solid #2a3b60;color:#cfe2ff;padding:8px 10px;border-radius:12px;margin:6px 0}
+  .incoming{border-left:3px solid var(--accent)}
+  .phone-alert{outline:3px solid var(--danger);animation:ping .9s infinite}
+  @keyframes ping{50%{outline-color:#ff9ab0}}
+
+  .overlay{position:fixed;inset:0;display:none;place-items:center;background:radial-gradient(800px 400px at 60% -10%, rgba(12,17,27,.94), rgba(6,9,15,.98));z-index:20}
+  .panel{background:linear-gradient(180deg,#141b2b,#0d1322);border:1px solid #1f2a42;border-radius:16px;padding:24px;max-width:520px;text-align:center;box-shadow:0 16px 40px rgba(0,0,0,.55)}
+
+  kbd{background:#0f1730;border:1px solid #203050;border-radius:6px;padding:2px 6px;color:#cfe3ff}
+  footer{margin-top:12px;color:var(--muted);font-size:12px}
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div class="avatar" aria-hidden="true"></div>
+      <div>
+        <h1>JaNiece — Night Shift (High‑Contrast)</h1>
+        <div class="sub">JaNiece is <em>always nodding off</em> at her desk. Keep her awake while she watches the camera wall and deals with her son’s constant pings. Energy at 0 → she falls asleep → game over.</div>
+      </div>
+    </header>
+
+    <!-- Third‑person scene -->
+    <div class="scene" id="scene">
+      <svg viewBox="0 0 900 260" aria-label="JaNiece at her desk watching a wall of cameras">
+        <rect x="0" y="0" width="900" height="260" fill="#0e1526"/>
+        <g id="wall">
+          <rect x="420" y="30" width="430" height="200" rx="16" fill="#0a1120" stroke="#1f2a42"/>
+          <g fill="#0f1c36" stroke="#203a60">
+            <rect class="scr" x="440" y="45" width="190" height="80" rx="8"/>
+            <rect class="scr" x="660" y="45" width="170" height="80" rx="8"/>
+            <rect class="scr" x="440" y="140" width="190" height="70" rx="8"/>
+            <rect class="scr" x="660" y="140" width="170" height="70" rx="8"/>
+          </g>
+          <rect class="glow" x="420" y="30" width="430" height="200" rx="16" fill="url(#g)"/>
+        </g>
+        <rect x="60" y="185" width="330" height="20" rx="6" fill="#1a2338"/>
+        <rect x="60" y="200" width="330" height="14" rx="6" fill="#121a2c"/>
+        <rect x="210" y="180" width="30" height="10" rx="4" fill="#28344f"/>
+        <g id="operator">
+          <ellipse cx="190" cy="150" rx="26" ry="32" fill="#1f2a42"/>
+          <circle cx="190" cy="118" r="16" fill="#5b3b2c"/>
+          <circle cx="178" cy="104" r="8" fill="#3b2820"/>
+          <path d="M170 155 q20 12 40 0" fill="none" stroke="#5b3b2c" stroke-width="8" stroke-linecap="round"/>
+          <rect x="135" y="165" width="110" height="12" rx="3" fill="#223355"/>
+          <rect x="155" y="140" width="90" height="26" rx="4" fill="#0f1d36" stroke="#284066"/>
+          <g class="zzz" id="zzz">
+            <text x="120" y="95" fill="#9fb7ff" font-size="18">Z</text>
+            <text x="128" y="85" fill="#9fb7ff" font-size="14">Z</text>
+            <text x="135" y="77" fill="#9fb7ff" font-size="10">Z</text>
+          </g>
+        </g>
+        <defs>
+          <linearGradient id="g" x1="0" x2="0" y1="0" y2="1">
+            <stop offset="0" stop-color="#ff9a3c" stop-opacity=".25"/>
+            <stop offset="1" stop-color="#ff4d4d" stop-opacity=".25"/>
+          </linearGradient>
+        </defs>
+      </svg>
+    </div>
+
+    <div class="hud">
+      <div>
+        <div class="meter" role="meter" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100"><div class="fill" id="energyFill"></div></div>
+        <div class="label">Energy</div>
+      </div>
+      <div class="pill">⏱️ Shift <strong id="clock">00:00</strong></div>
+      <div class="pill"><button class="cta" id="snap">🔔 Snap Awake (Space)</button></div>
+      <div class="pill"><button class="cta secondary" id="coffee">☕ Coffee (C)</button> <span class="label" id="cool"></span></div>
+    </div>
+
+    <section class="desk">
+      <div class="monitors">
+        <div class="cams" id="cams"></div>
+      </div>
+      <aside class="side">
+        <div class="card phone" id="phone">
+          <div class="phone-header">📱 Son • Messages</div>
+          <div class="bubble">“Mom can I have snacks?”</div>
+          <div class="bubble">“Where’s the charger?”</div>
+          <div class="bubble incoming" id="latest" aria-live="polite">—</div>
+          <div style="display:flex; gap:8px; margin-top:8px">
+            <button class="cta" style="font-size:14px;padding:10px 12px" id="yell">📢 Yell: "Not now!" (Y)</button>
+            <button class="cta secondary" style="font-size:14px;padding:10px 12px" id="text">📨 Text: "Be patient" (T)</button>
+          </div>
+          <div class="label" id="phoneTip" style="margin-top:6px">Handle pings quickly — distractions increase energy drain.</div>
+        </div>
+
+        <div class="card">
+          <div class="big">Rules</div>
+          <ul style="margin:8px 0 0 18px;padding:0;line-height:1.4">
+            <li>Click flashing cameras to acknowledge alerts (+energy)</li>
+            <li>Phone pings add <em>distraction drain</em> until handled</li>
+            <li><kbd>Y</kbd> yell quick (tiny cost), <kbd>T</kbd> text calm (tiny boost)</li>
+            <li>JaNiece nods off randomly — use <em>Snap Awake</em> & coffee wisely</li>
+          </ul>
+        </div>
+      </aside>
+    </section>
+
+    <footer>Controls: click cameras • <kbd>Y</kbd> yell • <kbd>T</kbd> text • <kbd>C</kbd> coffee • <kbd>Space</kbd> micro-boost • <kbd>R</kbd> restart after loss.</footer>
+  </div>
+
+  <div class="overlay" id="over">
+    <div class="panel">
+      <div class="big" id="overTitle">You fell asleep 😴</div>
+      <div id="overMsg" style="margin-top:6px"></div>
+      <div class="label" id="overTip" style="margin-top:8px">Tip: Clear pings fast, and hit Snap Awake when you see those Zzzs.</div>
+      <div style="margin-top:12px"><button class="cta" id="restart">🔁 Start Again</button></div>
+    </div>
+  </div>
+
+<script>
+// --- Elements
+const camsEl = document.getElementById('cams');
+const energyFill = document.getElementById('energyFill');
+const clockEl = document.getElementById('clock');
+const over = document.getElementById('over');
+const overTitle = document.getElementById('overTitle');
+const overMsg = document.getElementById('overMsg');
+const restart = document.getElementById('restart');
+const snapBtn = document.getElementById('snap');
+const coffeeBtn = document.getElementById('coffee');
+const coolEl = document.getElementById('cool');
+const scene = document.getElementById('scene');
+// Phone
+const phone = document.getElementById('phone');
+const latest = document.getElementById('latest');
+const yellBtn = document.getElementById('yell');
+const textBtn = document.getElementById('text');
+
+// --- Config
+const CAMS = 6;
+const cfg = {
+  baseDrainPerMin: 3.6,            // slightly higher: she's always sleepy
+  alertDrainPerMin: 6.0,
+  phoneDrainPerMin: 5.0,           // while phone ping active
+  ackGain: 8,
+  snapGain: 4,                     // micro boost a bit stronger
+  coffeeGain: 18,
+  coffeeCooldown: 12,              // seconds
+  yellCost: 1.5,                   // yelling is quick but a bit tiring
+  textBoost: 1.0,                  // texting back gives tiny energy back
+  minAlertGap: 2.2, maxAlertGap: 5.0,
+  missPenalty: 4,
+  phoneMinGap: 10, phoneMaxGap: 18,
+  phoneTTL: 6.5
+};
+
+let feeds = [];
+let energy = 100;
+let t = 0; // seconds elapsed
+let running = false;
+let last = performance.now();
+let coffeeReady = true, coolTimer = 0;
+let phoneActive = false, phoneTimer = 0, nextPhone = rand(cfg.phoneMinGap,cfg.phoneMaxGap);
+let drowse = rand(8,14); // periodic micro‑sleep
+
+function clamp(v,min,max){return Math.max(min,Math.min(max,v))}
+function rand(min,max){return Math.random()*(max-min)+min}
+function fmt(s){s|=0;const m=String((s/60|0)).padStart(2,'0');const ss=String(s%60).padStart(2,'0');return `${m}:${ss}`}
+
+function makeFeed(i){
+  const el = document.createElement('div');
+  el.className = 'cam';
+  el.innerHTML = `<div class=\"scan\"></div><span class=\"title\">CAM ${i+1}</span>`;
+  const f = {el, alert:false, timer:rand(cfg.minAlertGap,cfg.maxAlertGap), ttl:0};
+  el.addEventListener('click', ()=>ack(f));
+  return f;
+}
+
+function scheduleAlert(f){ f.timer = rand(cfg.minAlertGap,cfg.maxAlertGap); }
+function setAlert(f){ f.alert=true; f.ttl=rand(3.5,6.0); f.el.classList.add('alert'); updateScene(); }
+function ack(f){ if(!f.alert) return; f.alert=false; f.el.classList.remove('alert'); addEnergy(cfg.ackGain); scheduleAlert(f); updateScene(); }
+
+function addEnergy(x){
+  energy = clamp(energy + x, 0, 100);
+  energyFill.style.width = `calc(${energy}% )`;
+  energyFill.style.background = energy<25 ? 'linear-gradient(90deg,#ff5a7a,#ffc0cb)': 'linear-gradient(90deg,#46ffb1,#61d3ff)';
+  document.body.style.filter = energy<12 ? 'saturate(.85) brightness(.95)' : 'none';
+  updateScene();
+}
+
+function drinkCoffee(){ if(!coffeeReady || !running) return; coffeeReady=false; coolTimer = cfg.coffeeCooldown; addEnergy(cfg.coffeeGain); updateCoffeeUI(); }
+function updateCoffeeUI(){ if(coffeeReady){ coolEl.textContent=''; } else { coolEl.textContent=`(${coolTimer|0}s)`; } }
+
+function start(){
+  camsEl.innerHTML=''; feeds=[];
+  for(let i=0;i<CAMS;i++){ const f=makeFeed(i); feeds.push(f); camsEl.appendChild(f.el); }
+  energy=100; t=0; last=performance.now(); running=true; coffeeReady=true; coolTimer=0; updateCoffeeUI();
+  phoneActive=false; phoneTimer=0; nextPhone = rand(cfg.phoneMinGap,cfg.phoneMaxGap);
+  drowse = rand(8,14);
+  latest.textContent='—'; phone.classList.remove('phone-alert');
+  over.style.display='none'; addEnergy(0);
+  scene.classList.remove('alerting','sleepy');
+  loop();
+}
+
+function triggerPhone(){
+  phoneActive=true; phoneTimer = cfg.phoneTTL; phone.classList.add('phone-alert');
+  const samples = [
+    '“Mom! He took my controller!”',
+    '“Where are the pizza rolls?”',
+    '“Can I stay up?”',
+    '“The Wi‑Fi is slow!”',
+    '“When are you home?”',
+    '“I can\'t find my backpack!”',
+    '“I finished my homework… can I play?”'
+  ];
+  latest.textContent = samples[(Math.random()*samples.length)|0];
+}
+
+const yellLines = [
+  '“Get down from there!”',
+  '“Get off your iPad!”',
+  '“Please stop jumping on the couch!”',
+  '“Put that back where it belongs!”',
+  '“It\'s bedtime — go brush your teeth!”'
+];
+
+function handleYell(){ if(!phoneActive) return; addEnergy(-cfg.yellCost); latest.textContent = yellLines[(Math.random()*yellLines.length)|0]; clearPhone(true); }
+function handleText(){ if(!phoneActive) return; addEnergy(cfg.textBoost); latest.textContent = '“Be patient, I\'m working.”'; clearPhone(true); }
+function clearPhone(keepText=false){ phoneActive=false; phoneTimer=0; nextPhone = rand(cfg.phoneMinGap,cfg.phoneMaxGap); phone.classList.remove('phone-alert'); }
+
+function updateScene(){
+  const anyAlert = feeds.some(f=>f.alert);
+  scene.classList.toggle('alerting', anyAlert);
+  scene.classList.toggle('sleepy', energy < 20);
+}
+
+function loop(){
+  if(!running) return;
+  const now = performance.now(); const dt = (now-last)/1000; last=now; t+=dt;
+
+  // Base & dynamic drain
+  let perMin = cfg.baseDrainPerMin + feeds.filter(f=>f.alert).length*cfg.alertDrainPerMin;
+  if(phoneActive) perMin += cfg.phoneDrainPerMin;
+  const drain = perMin/60 * dt;
+  addEnergy(-drain);
+
+  // Periodic micro‑sleep to reflect "always falling asleep"
+  drowse -= dt; if(drowse<=0){ addEnergy(-2); scene.classList.add('sleepy'); setTimeout(()=>scene.classList.remove('sleepy'), 900); drowse = rand(8,14); }
+
+  // Coffee cooldown
+  if(!coffeeReady){ coolTimer -= dt; if(coolTimer<=0){ coffeeReady=true; coolTimer=0; } updateCoffeeUI(); }
+
+  // Phone schedule
+  if(!phoneActive){ nextPhone -= dt; if(nextPhone<=0) triggerPhone(); }
+  else { phoneTimer -= dt; if(phoneTimer<=0){ addEnergy(-3); clearPhone(); } }
+
+  // Alerts lifecycle
+  for(const f of feeds){
+    if(f.alert){ f.ttl -= dt; if(f.ttl<=0){ f.alert=false; f.el.classList.remove('alert'); addEnergy(-cfg.missPenalty); scheduleAlert(f); updateScene(); } }
+    else{ f.timer -= dt; if(f.timer<=0) setAlert(f); }
+  }
+
+  // UI
+  clockEl.textContent = fmt(t);
+  if(energy<=0){ return gameOver(); }
+  requestAnimationFrame(loop);
+}
+
+function gameOver(){
+  running=false;
+  overTitle.textContent = 'You fell asleep 😴';
+  overMsg.textContent = `You lasted ${fmt(t)} on shift.`;
+  over.style.display='grid';
+}
+
+// Input
+window.addEventListener('keydown', e=>{
+  if(e.code==='Space'){ e.preventDefault(); if(running) addEnergy(cfg.snapGain); }
+  if(e.key==='c' || e.key==='C'){ drinkCoffee(); }
+  if(e.key==='y' || e.key==='Y'){ handleYell(); }
+  if(e.key==='t' || e.key==='T'){ handleText(); }
+  if(e.key==='r' || e.key==='R'){ if(!running) start(); }
+});
+snapBtn.addEventListener('click', ()=>{ if(running) addEnergy(cfg.snapGain); });
+coffeeBtn.addEventListener('click', drinkCoffee);
+yellBtn.addEventListener('click', handleYell);
+textBtn.addEventListener('click', handleText);
+restart.addEventListener('click', start);
+
+start();
+</script>
+</body>
+</html>
