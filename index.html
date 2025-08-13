@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>JaNiece — Night Shift (High‑Contrast)</title>
+<title>JaNiece — Night Shift (Hard‑Mode, High‑Contrast)</title>
 <style>
   :root{
     --bg:#0b101a; --panel:#11192a; --ink:#e9f2ff; --muted:#a1b2cc;
@@ -74,7 +74,7 @@
     <header>
       <div class="avatar" aria-hidden="true"></div>
       <div>
-        <h1>JaNiece — Night Shift (High‑Contrast)</h1>
+        <h1>JaNiece — Night Shift (Hard‑Mode)</h1>
         <div class="sub">JaNiece is <em>always nodding off</em> at her desk. Keep her awake while she watches the camera wall and deals with her son’s constant pings. Energy at 0 → she falls asleep → game over.</div>
       </div>
     </header>
@@ -191,19 +191,23 @@ const textBtn = document.getElementById('text');
 // --- Config
 const CAMS = 6;
 const cfg = {
-  baseDrainPerMin: 3.6,            // slightly higher: she's always sleepy
-  alertDrainPerMin: 6.0,
-  phoneDrainPerMin: 5.0,           // while phone ping active
-  ackGain: 8,
-  snapGain: 4,                     // micro boost a bit stronger
-  coffeeGain: 18,
-  coffeeCooldown: 12,              // seconds
-  yellCost: 1.5,                   // yelling is quick but a bit tiring
-  textBoost: 1.0,                  // texting back gives tiny energy back
-  minAlertGap: 2.2, maxAlertGap: 5.0,
-  missPenalty: 4,
-  phoneMinGap: 10, phoneMaxGap: 18,
-  phoneTTL: 6.5
+  // Harsher baseline drains
+  baseDrainPerMin: 8.0,             // was 3.6
+  alertDrainPerMin: 9.0,            // was 6.0
+  phoneDrainPerMin: 8.0,            // was 5.0
+  // Gains/Cooldowns nerfed
+  ackGain: 5,                       // was 8
+  snapGain: 3,                      // was 4
+  coffeeGain: 12,                   // was 18
+  coffeeCooldown: 18,               // was 12 (seconds)
+  yellCost: 2.0,                    // was 1.5
+  textBoost: 0.5,                   // was 1.0
+  // Alerts more frequent, misses hurt more
+  minAlertGap: 1.6, maxAlertGap: 3.2, // was 2.2–5.0
+  missPenalty: 8,                   // was 4
+  // Phone pressure increased
+  phoneMinGap: 7, phoneMaxGap: 14,  // was 10–18
+  phoneTTL: 7.5                     // linger slightly longer
 };
 
 let feeds = [];
@@ -213,7 +217,7 @@ let running = false;
 let last = performance.now();
 let coffeeReady = true, coolTimer = 0;
 let phoneActive = false, phoneTimer = 0, nextPhone = rand(cfg.phoneMinGap,cfg.phoneMaxGap);
-let drowse = rand(8,14); // periodic micro‑sleep
+let drowse = rand(7,12); // more frequent micro‑sleep
 
 function clamp(v,min,max){return Math.max(min,Math.min(max,v))}
 function rand(min,max){return Math.random()*(max-min)+min}
@@ -222,14 +226,14 @@ function fmt(s){s|=0;const m=String((s/60|0)).padStart(2,'0');const ss=String(s%
 function makeFeed(i){
   const el = document.createElement('div');
   el.className = 'cam';
-  el.innerHTML = `<div class=\"scan\"></div><span class=\"title\">CAM ${i+1}</span>`;
+  el.innerHTML = `<div class="scan"></div><span class="title">CAM ${i+1}</span>`;
   const f = {el, alert:false, timer:rand(cfg.minAlertGap,cfg.maxAlertGap), ttl:0};
   el.addEventListener('click', ()=>ack(f));
   return f;
 }
 
 function scheduleAlert(f){ f.timer = rand(cfg.minAlertGap,cfg.maxAlertGap); }
-function setAlert(f){ f.alert=true; f.ttl=rand(3.5,6.0); f.el.classList.add('alert'); updateScene(); }
+function setAlert(f){ f.alert=true; f.ttl=rand(3.0,5.2); f.el.classList.add('alert'); updateScene(); }
 function ack(f){ if(!f.alert) return; f.alert=false; f.el.classList.remove('alert'); addEnergy(cfg.ackGain); scheduleAlert(f); updateScene(); }
 
 function addEnergy(x){
@@ -241,14 +245,14 @@ function addEnergy(x){
 }
 
 function drinkCoffee(){ if(!coffeeReady || !running) return; coffeeReady=false; coolTimer = cfg.coffeeCooldown; addEnergy(cfg.coffeeGain); updateCoffeeUI(); }
-function updateCoffeeUI(){ if(coffeeReady){ coolEl.textContent=''; } else { coolEl.textContent=`(${coolTimer|0}s)`; } }
+function updateCoffeeUI(){ if(coffeeReady){ coolEl.textContent=''; } else { coolEl.textContent=`(${(coolTimer|0)}s)`; } }
 
 function start(){
   camsEl.innerHTML=''; feeds=[];
   for(let i=0;i<CAMS;i++){ const f=makeFeed(i); feeds.push(f); camsEl.appendChild(f.el); }
   energy=100; t=0; last=performance.now(); running=true; coffeeReady=true; coolTimer=0; updateCoffeeUI();
   phoneActive=false; phoneTimer=0; nextPhone = rand(cfg.phoneMinGap,cfg.phoneMaxGap);
-  drowse = rand(8,14);
+  drowse = rand(7,12);
   latest.textContent='—'; phone.classList.remove('phone-alert');
   over.style.display='none'; addEnergy(0);
   scene.classList.remove('alerting','sleepy');
@@ -291,21 +295,25 @@ function loop(){
   if(!running) return;
   const now = performance.now(); const dt = (now-last)/1000; last=now; t+=dt;
 
+  // Difficulty ramps +25% drain per minute (capped at +150%)
+  const difficulty = 1 + Math.min(1.5, (t/60) * 0.25);
+
   // Base & dynamic drain
   let perMin = cfg.baseDrainPerMin + feeds.filter(f=>f.alert).length*cfg.alertDrainPerMin;
   if(phoneActive) perMin += cfg.phoneDrainPerMin;
-  const drain = perMin/60 * dt;
+  if(energy < 30) perMin += 4; // panic drain when low energy
+  const drain = (perMin * difficulty)/60 * dt;
   addEnergy(-drain);
 
   // Periodic micro‑sleep to reflect "always falling asleep"
-  drowse -= dt; if(drowse<=0){ addEnergy(-2); scene.classList.add('sleepy'); setTimeout(()=>scene.classList.remove('sleepy'), 900); drowse = rand(8,14); }
+  drowse -= dt; if(drowse<=0){ addEnergy(-3); scene.classList.add('sleepy'); setTimeout(()=>scene.classList.remove('sleepy'), 900); drowse = rand(7,12); }
 
   // Coffee cooldown
   if(!coffeeReady){ coolTimer -= dt; if(coolTimer<=0){ coffeeReady=true; coolTimer=0; } updateCoffeeUI(); }
 
   // Phone schedule
   if(!phoneActive){ nextPhone -= dt; if(nextPhone<=0) triggerPhone(); }
-  else { phoneTimer -= dt; if(phoneTimer<=0){ addEnergy(-3); clearPhone(); } }
+  else { phoneTimer -= dt; if(phoneTimer<=0){ addEnergy(-4); clearPhone(); } }
 
   // Alerts lifecycle
   for(const f of feeds){
@@ -344,3 +352,4 @@ start();
 </script>
 </body>
 </html>
+
